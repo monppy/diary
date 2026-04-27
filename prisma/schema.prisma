@@ -1,0 +1,61 @@
+// 日記アプリ (my-diary) のデータモデル
+// 設計詳細は CLAUDE.md と会話履歴を参照
+// 詳細: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: 接続URLは prisma.config.ts に集約された (schema 内 url/directUrl は廃止)
+}
+
+enum EntryMode {
+  FREE
+  TEMPLATE
+}
+
+// 1日1件以上書ける。タイトルなし、本文必須、日付必須。
+// 自由記述/テンプレート両モードを Markdown 規約 + mode フラグで扱う。
+model Entry {
+  id          String     @id @default(cuid())
+  // Supabase auth.users.id (UUID) を文字列で保持。Prisma 側に User テーブルは持たない。
+  userId      String
+  // 「いつの日記か」(時刻なし)。createdAt とは別。
+  entryDate   DateTime   @db.Date
+  body        String
+  mode        EntryMode  @default(FREE)
+  // 将来テンプレ複数化に備えた識別子 (例: "daily-reflection")
+  templateKey String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tags        EntryTag[]
+
+  @@index([userId, entryDate(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// タグはユーザーごとに正規化。リネーム・autocomplete・利用回数集計に対応。
+model Tag {
+  id        String     @id @default(cuid())
+  userId    String
+  // "#" は外して保持
+  name      String
+  createdAt DateTime   @default(now())
+  entries   EntryTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model EntryTag {
+  entryId String
+  tagId   String
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, tagId])
+  @@index([tagId])
+}
