@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/actions/auth";
 
@@ -12,7 +13,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             📔 日記
           </Link>
           <div className="flex items-center gap-1">
-            <Link href="/search" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+            <ThemeToggle />
+            <Link
+              href="/search"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
               検索
             </Link>
             <Link href="/new" className={cn(buttonVariants({ size: "sm" }))}>
