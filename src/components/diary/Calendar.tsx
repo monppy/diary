@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +17,7 @@ function toDateString(year: number, month: number, day: number): string {
   return `${year}-${pad(month)}-${pad(day)}`;
 }
 
-function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
+function shiftMonth(year: number, month: number, delta: number) {
   const m0 = month - 1 + delta;
   const y = year + Math.floor(m0 / 12);
   const m = ((m0 % 12) + 12) % 12;
@@ -24,16 +26,24 @@ function shiftMonth(year: number, month: number, delta: number): { year: number;
 
 type Props = {
   year: number;
-  month: number; // 1-12
-  entryDates: string[]; // YYYY-MM-DD のリスト
-  selectedDate?: string; // YYYY-MM-DD
-  todayString: string; // YYYY-MM-DD (サーバー時計のずれ回避のため呼び出し元から渡す)
+  month: number;
+  entryDates: string[];
+  selectedDate?: string;
+  todayString: string;
+  onSelectDate: (date: string) => void;
 };
 
-export function Calendar({ year, month, entryDates, selectedDate, todayString }: Props) {
+export function Calendar({
+  year,
+  month,
+  entryDates,
+  selectedDate,
+  todayString,
+  onSelectDate,
+}: Props) {
   const dateSet = new Set(entryDates);
   const firstDay = new Date(Date.UTC(year, month - 1, 1));
-  const startOffset = firstDay.getUTCDay(); // 0=日
+  const startOffset = firstDay.getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
   const prev = shiftMonth(year, month, -1);
@@ -44,7 +54,6 @@ export function Calendar({ year, month, entryDates, selectedDate, todayString }:
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ day: d, date: toDateString(year, month, d) });
   }
-  // 最後の週まで埋める
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
@@ -91,13 +100,13 @@ export function Calendar({ year, month, entryDates, selectedDate, todayString }:
           const isToday = cell.date === todayString;
           const dow = i % 7;
           return (
-            <Link
+            <button
               key={cell.date}
-              href={`/entries?month=${toMonthString(year, month)}&date=${cell.date}`}
-              scroll={false}
+              type="button"
+              onClick={() => onSelectDate(cell.date)}
               className={cn(
                 "aspect-square flex flex-col items-center justify-center rounded-md text-sm relative transition-colors",
-                "hover:bg-muted",
+                "hover:bg-muted active:scale-95",
                 isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                 !isSelected && isToday && "ring-1 ring-primary",
                 !isSelected && dow === 0 && "text-red-500",
@@ -114,7 +123,7 @@ export function Calendar({ year, month, entryDates, selectedDate, todayString }:
                   aria-label="日記あり"
                 />
               )}
-            </Link>
+            </button>
           );
         })}
       </div>

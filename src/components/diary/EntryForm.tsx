@@ -73,22 +73,51 @@ export function EntryForm({ entry, defaultDate }: Props) {
     return () => clearTimeout(t);
   }, [body, draftKey]);
 
-  // 入力時にカーソル位置がモバイルキーボードに隠れないよう、控えめにスクロール
-  // カーソルが末尾にあるとき（=書き進めているとき）だけ、textarea の下端を可視領域内に保つ
-  // 中間カーソルで編集している場合はユーザーのスクロール位置を尊重する
-  function handleInput(e: React.FormEvent<HTMLTextAreaElement>) {
-    const ta = e.currentTarget;
-    if (ta.selectionStart !== ta.value.length) return;
+  // カーソル行のピクセル位置を計算してキーボードの上に出るようスクロール
+  // \n カウントで行インデックスを求め、line-height をかけて Y オフセットを出す
+  function scrollCursorIntoView(ta: HTMLTextAreaElement) {
+    const selStart = ta.selectionStart;
+    if (selStart == null) return;
 
-    const rect = ta.getBoundingClientRect();
-    const visualHeight = window.visualViewport?.height ?? window.innerHeight;
-    const visualTop = window.visualViewport?.offsetTop ?? 0;
-    const visibleBottom = visualTop + visualHeight;
-    const margin = 24;
-    const overflow = rect.bottom - (visibleBottom - margin);
+    const textBefore = ta.value.substring(0, selStart);
+    const lineIndex = textBefore.split("\n").length - 1;
+
+    const style = getComputedStyle(ta);
+    const lineHeight =
+      parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.4;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+
+    const taRect = ta.getBoundingClientRect();
+    // カーソル行の画面上の下端 Y 座標
+    const cursorBottom =
+      taRect.top + paddingTop + (lineIndex + 1) * lineHeight - ta.scrollTop;
+
+    const vv = window.visualViewport;
+    const visibleTop = vv?.offsetTop ?? 0;
+    const visibleBottom = visibleTop + (vv?.height ?? window.innerHeight);
+    const margin = 32;
+
+    const overflow = cursorBottom - (visibleBottom - margin);
     if (overflow > 0) {
       window.scrollBy({ top: overflow, behavior: "smooth" });
     }
+  }
+
+  // モバイルでキーボードが開いたとき（visualViewport リサイズ時）にも追跡する
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      const ta = textareaRef.current;
+      if (ta && document.activeElement === ta) scrollCursorIntoView(ta);
+    };
+    vv.addEventListener("resize", handler);
+    return () => vv.removeEventListener("resize", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleInput(e: React.FormEvent<HTMLTextAreaElement>) {
+    scrollCursorIntoView(e.currentTarget);
   }
 
   function handleSubmit(e: React.FormEvent) {

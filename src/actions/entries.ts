@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   createEntry,
   deleteEntry,
+  listEntriesByDate,
   searchEntries,
   updateEntry,
 } from "@/lib/db/entries";
@@ -92,6 +93,22 @@ export async function deleteEntryAction(
     return { success: true, data: undefined };
   } catch (e) {
     const message = e instanceof Error ? e.message : "削除に失敗しました";
+    return { success: false, error: message };
+  }
+}
+
+export async function getEntriesByDateAction(
+  dateStr: string,
+): Promise<ActionResult<EntryWithTags[]>> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return { success: false, error: "日付の形式が正しくありません" };
+  }
+  try {
+    const userId = await getAuthenticatedUserId();
+    const entries = await listEntriesByDate(userId, dateStr);
+    return { success: true, data: entries };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "取得に失敗しました";
     return { success: false, error: message };
   }
 }
