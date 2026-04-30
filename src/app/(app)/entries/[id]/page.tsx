@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getEntry } from "@/lib/db/entries";
-import { TagBadge } from "@/components/diary/TagBadge";
 import { DeleteButton } from "@/components/diary/DeleteButton";
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -55,24 +54,13 @@ export default async function EntryPage({
         {entry.body}
       </div>
 
-      {entry.tagNames.length > 0 && (
-        <>
-          <Separator />
-          <div className="flex flex-wrap gap-2">
-            {entry.tagNames.map((name) => (
-              <TagBadge key={name} name={name} />
-            ))}
-          </div>
-        </>
-      )}
-
       <Separator />
 
       <Link
         href="/entries"
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
       >
-        ← 一覧に戻る
+        ← カレンダーに戻る
       </Link>
     </article>
   );

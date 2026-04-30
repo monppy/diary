@@ -42,6 +42,7 @@ export type CreateEntryInput = z.infer<typeof createEntrySchema>;
 // ------------------------------------------------------------------
 // 日記更新 (Server Action 入力)
 // entryDate は作成後に変更しない設計
+// tagNames は省略可。省略時は既存タグを保持する (UI からタグを外しても DB は温存)
 // ------------------------------------------------------------------
 export const updateEntrySchema = z.object({
   body: z
@@ -51,7 +52,10 @@ export const updateEntrySchema = z.object({
     .optional(),
   mode: entryModeSchema.optional(),
   templateKey: z.string().max(100).optional(),
-  tagNames: tagNamesSchema,
+  tagNames: z
+    .array(tagNameSchema)
+    .max(20, "タグは1エントリーにつき20個まで")
+    .optional(),
 });
 
 export type UpdateEntryInput = z.infer<typeof updateEntrySchema>;

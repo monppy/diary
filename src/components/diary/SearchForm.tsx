@@ -20,15 +20,6 @@ export function SearchForm() {
           placeholder="本文で検索…"
         />
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="tags">タグ</Label>
-        <Input
-          id="tags"
-          name="tags"
-          defaultValue={searchParams.get("tags") ?? ""}
-          placeholder="仕事, 人間関係  (カンマ区切り)"
-        />
-      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="dateFrom">開始日</Label>

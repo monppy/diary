@@ -103,6 +103,42 @@ export async function getEntry(
   return toEntryWithTags(entry as RawEntry);
 }
 
+// 指定月に日記がある日付を YYYY-MM-DD 文字列の配列で返す (カレンダーの丸ラベル用)
+export async function getEntryDatesInMonth(
+  userId: string,
+  year: number,
+  month: number,
+): Promise<string[]> {
+  // month は 1-12
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 1));
+  const rows = await prisma.entry.findMany({
+    where: { userId, entryDate: { gte: start, lt: end } },
+    select: { entryDate: true },
+  });
+  const set = new Set<string>();
+  for (const r of rows) {
+    set.add(r.entryDate.toISOString().slice(0, 10));
+  }
+  return Array.from(set).sort();
+}
+
+// 指定日の日記を全件返す (1日複数件対応)
+export async function listEntriesByDate(
+  userId: string,
+  dateStr: string,
+): Promise<EntryWithTags[]> {
+  const date = new Date(`${dateStr}T00:00:00.000Z`);
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const entries = await prisma.entry.findMany({
+    where: { userId, entryDate: { gte: date, lt: next } },
+    orderBy: { createdAt: "desc" },
+    include: tagInclude,
+  });
+  return (entries as RawEntry[]).map(toEntryWithTags);
+}
+
 export async function listEntries(
   userId: string,
   page = 1,

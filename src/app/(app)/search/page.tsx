@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 
 type SearchPageParams = {
   q?: string;
-  tags?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: string;
@@ -26,20 +25,12 @@ export default async function SearchPage({
   if (!user) redirect("/login");
 
   const params = await searchParams;
-  const hasQuery = !!(params.q || params.tags || params.dateFrom || params.dateTo);
+  const hasQuery = !!(params.q || params.dateFrom || params.dateTo);
 
   let results = null;
   if (hasQuery) {
-    const tagNames = params.tags
-      ? params.tags
-          .split(",")
-          .map((t) => t.replace(/^#+/, "").trim())
-          .filter(Boolean)
-      : undefined;
-
     results = await searchEntries(user.id, {
       q: params.q,
-      tagNames,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
       page: Math.max(1, Number(params.page ?? "1")),
