@@ -32,7 +32,6 @@ export function EntryForm({ entry, defaultDate }: Props) {
       : (defaultDate ?? new Date().toISOString().slice(0, 10)),
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const restoredRef = useRef(false);
   // 下書きキー: 新規は日付ごと、編集はエントリIDごと
   const draftKey = isEdit
@@ -58,6 +57,15 @@ export function EntryForm({ entry, defaultDate }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // body が変わるたびに textarea の高さを内容に合わせて伸ばす
+  // overflow: hidden と組み合わせることでブラウザのネイティブスクロールに任せる
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [body]);
+
   // 入力をデバウンスして localStorage に保存
   useEffect(() => {
     const t = setTimeout(() => {
@@ -73,64 +81,6 @@ export function EntryForm({ entry, defaultDate }: Props) {
     }, 300);
     return () => clearTimeout(t);
   }, [body, draftKey]);
-
-  // iOS Safari: キーボードが開閉すると visualViewport が縮小・拡大する
-  // - フォームに padding-bottom を追加してキーボード上に余白を確保
-  // - textarea の scrollTop を調整してカーソル行をキーボードの上に表示
-  // - window.scrollBy は使わない（ページ全体が跳ぶのを防ぐため）
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const form = formRef.current;
-
-    const handleResize = () => {
-      const ta = textareaRef.current;
-      if (!form) return;
-
-      const keyboardHeight = Math.max(
-        0,
-        window.innerHeight - vv.height - vv.offsetTop,
-      );
-
-      form.style.paddingBottom = keyboardHeight > 0 ? `${keyboardHeight}px` : "";
-
-      if (keyboardHeight > 0 && ta && document.activeElement === ta) {
-        const selStart = ta.selectionStart;
-        if (selStart == null) return;
-
-        const textBefore = ta.value.substring(0, selStart);
-        const lineIndex = textBefore.split("\n").length - 1;
-
-        const style = getComputedStyle(ta);
-        const lineHeight =
-          parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.4;
-        const paddingTop = parseFloat(style.paddingTop) || 0;
-
-        const cursorY = paddingTop + lineIndex * lineHeight;
-
-        // textarea のうちキーボードに隠れず実際に見えている高さ
-        const taRect = ta.getBoundingClientRect();
-        const visibleBottom = vv.offsetTop + vv.height;
-        const taVisibleHeight = Math.max(0, visibleBottom - taRect.top);
-
-        const margin = 24;
-        if (cursorY - ta.scrollTop > taVisibleHeight - lineHeight - margin) {
-          ta.scrollTop = Math.max(
-            0,
-            cursorY - taVisibleHeight + lineHeight + margin,
-          );
-        }
-      }
-    };
-
-    vv.addEventListener("resize", handleResize);
-    vv.addEventListener("scroll", handleResize);
-    return () => {
-      vv.removeEventListener("resize", handleResize);
-      vv.removeEventListener("scroll", handleResize);
-      if (form) form.style.paddingBottom = "";
-    };
-  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -162,7 +112,7 @@ export function EntryForm({ entry, defaultDate }: Props) {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 pb-[50vh]">
       {!isEdit && (
         <div className="space-y-1.5">
           <Label htmlFor="entryDate">日付</Label>
@@ -183,7 +133,7 @@ export function EntryForm({ entry, defaultDate }: Props) {
           id="body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={10}
+          className="overflow-hidden resize-none min-h-[240px]"
           placeholder="今日のことを書いてみましょう…"
         />
       </div>
